@@ -18,9 +18,13 @@ class ExchangeInterface:
 
     def generate_client_order_id(self, trade_plan_id: str, role: str, attempt: int = 1) -> str:
         """
-        EFHS 3.1: <bot_id>_<trade_plan_id>_<order_role>_<attempt>
+        EFHS 3.1: <bot_id>_<short_uuid>_<role>_<attempt>
+        Binance limit is 36 chars.
+        UUID is 36, bot_id is usually short.
+        We take first 12 chars of UUID.
         """
-        return f"{self.bot_id}_{trade_plan_id}_{role}_{attempt}"
+        short_id = trade_plan_id.replace("-", "")[:12]
+        return f"{self.bot_id}_{short_id}_{role}_{attempt}"
 
     async def ensure_isolated_1x(self, symbol: str):
         """

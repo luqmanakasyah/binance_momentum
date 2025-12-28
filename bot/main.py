@@ -30,7 +30,7 @@ class MomentumBot:
         self.db_url = os.getenv("DATABASE_URL")
         self.api_key = os.getenv("BINANCE_API_KEY")
         self.api_secret = os.getenv("BINANCE_API_SECRET")
-        self.bot_id = os.getenv("BOT_ID", "momentum_bot_1")
+        self.bot_id = os.getenv("BOT_ID", "mb")
         
         self.store = init_store(self.db_url)
         self.client: Optional[AsyncClient] = None
