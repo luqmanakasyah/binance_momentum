@@ -105,7 +105,8 @@ class MomentumBot:
             # 3. Signal Generation
             instruments = await self.store.get_active_instruments()
             eligible_signals = []
-            
+            signal_metadata = {} # symbol -> (snapshot, bundle)
+
             for inst in instruments:
                 df_1h, df_15m = await self.data_service.fetch_strategy_data(inst.symbol)
                 bundle = await self.store.get_active_bundle(inst.instrument_id)
@@ -114,6 +115,10 @@ class MomentumBot:
                     continue
                     
                 snapshot = self.indicator_engine.get_snapshot(inst.symbol, df_1h, df_15m, bundle.atr_ma_length or 20)
+                
+                # Store metadata for later retrieval
+                signal_metadata[inst.symbol] = (snapshot, bundle)
+
                 signal = self.signal_engine.evaluate_signal(
                     inst.instrument_id, inst.symbol, snapshot.current_price, snapshot, bundle, inst.liquidity_rank
                 )
@@ -125,13 +130,16 @@ class MomentumBot:
             best_signal = self.selector.select_best_signal(eligible_signals)
             
             if best_signal:
+                # Retrieve correct metadata for best signal
+                best_snapshot, best_bundle = signal_metadata[best_signal.symbol]
+
                 # 5. Risk and Sizing
                 account = await self.client.futures_account()
                 total_equity = float(account['totalMarginBalance'])
                 available_equity = float(account['availableBalance'])
                 
                 trade_plan = self.risk_engine.calculate_trade_plan(
-                    best_signal, snapshot.current_price, snapshot.atr_ltf, bundle.atr_stop_multiplier,
+                    best_signal, best_snapshot.current_price, best_snapshot.atr_ltf, best_bundle.atr_stop_multiplier,
                     total_equity, available_equity
                 )
 
@@ -149,7 +157,7 @@ class MomentumBot:
                     db_plan = DBTradePlan(
                         instrument_id=best_signal.instrument_id,
                         symbol=best_signal.symbol,
-                        parameter_bundle_id=bundle.parameter_bundle_id,
+                        parameter_bundle_id=best_bundle.parameter_bundle_id,
                         eval_timestamp=datetime.now(),
                         direction=trade_plan.direction,
                         stop_price=trade_plan.stop_price,
