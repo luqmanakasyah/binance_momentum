@@ -12,11 +12,9 @@ from bot.data.models import NotificationEvent
 
 logger = logging.getLogger(__name__)
 
-def format_sig_figs(value: float, sig_figs: int = 6) -> str:
-    """Formats a number to N significant figures."""
-    if value == 0:
-        return "0"
-    return '{:g}'.format(float('{:.{p}g}'.format(value, p=sig_figs)))
+def format_price(value: float, precision: int) -> str:
+    """Formats a price to the correct decimal places."""
+    return f"{value:,.{precision}f}"
 
 def format_currency(value: float) -> str:
     """Formats a number to 2 decimal places."""
@@ -85,12 +83,19 @@ class TelegramNotifier:
                 logger.error(f"Failed to log notification to DB: {e}")
 
     async def send_trade_open(self, symbol: str, direction: str, price: float, qty: float):
+        precision = 2
+        qty_precision = 2
+        if self.bot_instance:
+            info = await self.bot_instance.data_service.get_instrument_info(symbol)
+            precision = info.get('pricePrecision', 2)
+            qty_precision = info.get('quantityPrecision', 2)
+
         msg = (
             f"<b>🟢 TRADE OPENED</b>\n"
             f"Symbol: {symbol}\n"
             f"Dir: {direction}\n"
-            f"Price: {format_sig_figs(price)}\n"
-            f"Qty: {format_sig_figs(qty)}"
+            f"Price: {format_price(price, precision)}\n"
+            f"Qty: {format_price(qty, qty_precision)}"
         )
         await self.notify(msg, "TRADE_OPEN")
 
@@ -152,11 +157,17 @@ class TelegramNotifier:
             # Fetch matching trade plan for SL/TP
             # (In a real scenario, TP/SL are in the protective orders on exchange too)
             
+            # Fetch precision
+            precision = 2
+            if self.bot_instance:
+                info = await self.bot_instance.data_service.get_instrument_info(pos.symbol)
+                precision = info.get('pricePrecision', 2)
+
             msg = (
                 f"<b>📊 Open Position: {pos.symbol}</b>\n"
                 f"Direction: {pos.direction}\n"
-                f"Entry: {format_sig_figs(float(pos.entry_price_avg))}\n"
-                f"Current: {format_sig_figs(cur_price)}\n"
+                f"Entry: {format_price(float(pos.entry_price_avg), precision)}\n"
+                f"Current: {format_price(cur_price, precision)}\n"
                 f"PnL: ${format_currency(pnl)}\n"
                 f"Status: {pos.status}"
             )

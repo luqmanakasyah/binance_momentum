@@ -12,6 +12,35 @@ class MarketDataService:
     
     def __init__(self, client: AsyncClient):
         self.client = client
+        self._instrument_cache = {}
+
+    async def get_instrument_info(self, symbol: str) -> dict:
+        """
+        Returns precision info (tickSize, stepSize) for a symbol.
+        """
+        if symbol in self._instrument_cache:
+            return self._instrument_cache[symbol]
+            
+        try:
+            info = await self.client.futures_exchange_info()
+            for s in info['symbols']:
+                if s['symbol'] == symbol:
+                    filters = {f['filterType']: f for f in s['filters']}
+                    tick_size = float(filters['PRICE_FILTER']['tickSize'])
+                    step_size = float(filters['LOT_SIZE']['stepSize'])
+                    
+                    data = {
+                        'tickSize': tick_size,
+                        'stepSize': step_size,
+                        'pricePrecision': s['pricePrecision'],
+                        'quantityPrecision': s['quantityPrecision']
+                    }
+                    self._instrument_cache[symbol] = data
+                    return data
+        except Exception as e:
+            logger.error(f"Failed to fetch exchange info for {symbol}: {e}")
+            
+        return {'tickSize': 0.000001, 'stepSize': 0.001} # Safe defaults
 
     async def get_candles(self, symbol: str, interval: str, limit: int = 500) -> pd.DataFrame:
         """

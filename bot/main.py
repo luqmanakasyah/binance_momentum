@@ -19,6 +19,7 @@ from bot.execution.regime_exit import RegimeExitEngine
 from bot.infra.safety import SafetySupervisor, SafetyHaltException
 from bot.infra.notifications import TelegramNotifier
 from bot.data.models import Position, TradePlan as DBTradePlan
+from bot.utils import round_step
 
 load_dotenv()
 
@@ -129,12 +130,16 @@ class MomentumBot:
                 total_equity = float(account['totalMarginBalance'])
                 available_equity = float(account['availableBalance'])
                 
-                # Fetch ATR and Bundle for sizing
-                # (Simplified for brief implementation)
                 trade_plan = self.risk_engine.calculate_trade_plan(
                     best_signal, snapshot.current_price, snapshot.atr_ltf, bundle.atr_stop_multiplier,
                     total_equity, available_equity
                 )
+
+                # 5.1 Apply Precision Rounding
+                inst_info = await self.data_service.get_instrument_info(best_signal.symbol)
+                trade_plan.qty = round_step(trade_plan.qty, inst_info['stepSize'])
+                trade_plan.stop_price = round_step(trade_plan.stop_price, inst_info['tickSize'])
+                trade_plan.tp_price = round_step(trade_plan.tp_price, inst_info['tickSize'])
 
                 # 6. Safety Check & Execution
                 await self.safety.pre_trade_check(best_signal.symbol)
