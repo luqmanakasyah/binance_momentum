@@ -22,6 +22,7 @@ class RiskEngine:
     
     RISK_PERCENT = 0.005  # 0.5% of total equity
     TP_R_MULTIPLIER = 2.0  # TP is exactly 2R
+    MARGIN_SAFETY_BUFFER = 0.95  # Use max 95% of available balance as safety
 
     def calculate_trade_plan(
         self, 
@@ -58,12 +59,13 @@ class RiskEngine:
         # Margin Required = Qty * Entry (at 1x)
         ideal_margin_required = ideal_qty * price
         
+        safe_available_equity = available_equity * self.MARGIN_SAFETY_BUFFER
         margin_to_use = ideal_margin_required
         capital_constrained = False
         
-        # PBC 11.2: If required margin exceeds available equity, use all available equity
-        if ideal_margin_required > available_equity:
-            margin_to_use = available_equity
+        # PBC 11.2: If required margin exceeds available equity, use safe available equity
+        if ideal_margin_required > safe_available_equity:
+            margin_to_use = safe_available_equity
             capital_constrained = True
             
         # 6. Final Quantity and Realised Risk
