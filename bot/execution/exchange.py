@@ -1,7 +1,10 @@
 import asyncio
+import logging
 from typing import Dict, Any, Optional
 from binance import AsyncClient
 from binance.enums import *
+
+logger = logging.getLogger(__name__)
 
 class ExchangeInterface:
     """
