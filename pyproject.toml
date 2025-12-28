@@ -1,0 +1,30 @@
+[project]
+name = "binance_momentum"
+version = "0.1.0"
+description = "Momentum Continuation Bot (HTF + ATR-Gated) for Binance USD-M"
+authors = [
+    {name = "Antigravity"}
+]
+dependencies = [
+    "python-binance>=1.0.19",
+    "pandas>=2.0.0",
+    "pandas-ta>=0.3.14b0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "alembic>=1.11.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "apscheduler>=3.10.0",
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
